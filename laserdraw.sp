@@ -351,12 +351,13 @@ public Action CMD_laser_m(int client, int args)
 stock void LaserP(int client, float start[3], float end[3], int color[4])
 {
 	TE_SetupBeamPoints(start, end, g_sprite, 0, 0, 0, g_fLaserDuration[client], g_fLaserWidth[client] / 2.0, g_fLaserWidth[client] / 2.0, 0, 0.0, color, 0);
-
+	
+	int iTargets;
+	int[] t = new int[MaxClients];
 	if(g_iPivotMode[client] == 1)
 	{
-		int iTargets;
-		int[] t = new int[MaxClients];
-		for (int i = 1; i < MaxClients; i++)
+		
+		for (int i = 1; i <= MaxClients; i++)
 		{
 			if (IsClientInGame(i))
 			{
@@ -385,11 +386,12 @@ stock void LaserP(int client, float start[3], float end[3], int color[4])
 				continue;
 			}
 		}
-	}	
+	}
+
 	
-	if(g_iLaserShowMode[client] == 0)
+	if(g_iLaserShowMode[client] == 0) //not working as intended rn
 	{
-		/*int target;
+		int target;
 		for(int c = 1; c <= MaxClients; c++)
 		{
 			if(!IsClientInGame(c))
@@ -413,8 +415,8 @@ stock void LaserP(int client, float start[3], float end[3], int color[4])
 					continue;
 			}
 			
-		}Not working nr */
-		TE_SendToClient(target); 
+		}
+		TE_SendToClient(target);
 		if(g_iPivotMode[target] == 1)
 			TE_Send(t, iTargets);
 		
