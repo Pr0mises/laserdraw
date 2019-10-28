@@ -1,7 +1,5 @@
 #pragma semicolon 1
 
-#define DEBUG
-
 #define PLUGIN_AUTHOR "Promises"
 #define PLUGIN_VERSION "1.00"
 
@@ -22,7 +20,6 @@ public Plugin myinfo =
 
 int RainbowColors[12][4] =  { {255, 0, 0, 255}, {255, 128, 0, 255}, {255, 255, 0, 255}, {128, 255, 0, 255}, {0, 255, 0, 255}, {0, 255, 128, 255},  {0, 255, 255, 255}, {0, 128, 255, 255}, {0, 0, 255, 255}, {128, 0, 255, 255}, {255, 0, 255, 255}, {255, 0, 128, 255} };
 
-float g_fLastLaser[MAXPLAYERS+1][3];
 bool g_bLaserE[MAXPLAYERS+1] = {false, ...};
 
 int g_sprite;
@@ -30,11 +27,10 @@ int g_iLaserMode[MAXPLAYERS + 1];
 int g_iLaserShowMode[MAXPLAYERS + 1];
 int g_iPivotMode[MAXPLAYERS + 1];
 
-
+float g_fLastLaser[MAXPLAYERS+1][3];
 float g_fLaserDuration[MAXPLAYERS + 1];
 float g_fLaserDistance[MAXPLAYERS + 1];
 float g_fLaserWidth[MAXPLAYERS + 1];
-
 
 Handle g_hCookieLaserMode;
 Handle g_hCookieDuration;
@@ -47,9 +43,6 @@ Handle g_hCookiePivot;
 
 public void OnPluginStart()
 {
-	
-	CreateConVar("sm_lazer_version", PLUGIN_VERSION, "laserdraw", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
-	
 	RegConsoleCmd("sm_laser", SM_LASER);
 	
 	RegConsoleCmd("+laser", SM_LASER_P);
@@ -68,7 +61,6 @@ public void OnPluginStart()
 	g_hCookiePivot = RegClientCookie("laser_pivot", "laser_pivot", CookieAccess_Public);
 	g_hCookieDefault = RegClientCookie("laser_default", "laser_default", CookieAccess_Public);
 	
-	
 	for( int i = 1; i <= MaxClients; i++ )
 	{
 		if( IsClientInGame(i) )
@@ -78,7 +70,6 @@ public void OnPluginStart()
 			OnClientCookiesCached(i);
 		}
 	}
-	
 }
 
 public void OnClientCookiesCached(int client)
@@ -109,16 +100,14 @@ public void OnClientCookiesCached(int client)
 	GetClientCookie(client, g_hCookiePivot, sCookie, sizeof(sCookie));
 	g_iPivotMode[client] = StringToInt(sCookie);
 }
+
 public void OnMapStart()
 {
-	
 	g_sprite = PrecacheModel("materials/sprites/laserbeam.vmt");
-
 }
 
 public void OnClientPutInServer(int client)
 {
-
 	g_bLaserE[client] = false;
 	g_fLastLaser[client][0] = 0.0;
 	g_fLastLaser[client][1] = 0.0;
@@ -143,7 +132,6 @@ public Action SM_LASER_P(int client, int args)
 
 public Action SM_LASER_R(int client, int args)
 {
-
 	g_bLaserE[client] = false;
 	g_fLastLaser[client][0] = 0.0;
 	g_fLastLaser[client][1] = 0.0;
@@ -159,11 +147,12 @@ public Action SM_WIDTH(int client, int args)
 		char strWidth[32];
 		GetCmdArg(1, strWidth, 32);
 		float flWidth = StringToFloat(strWidth);
-		
-		if (flWidth > 25.0 && (!GetUserFlagBits(client) & ADMFLAG_ROOT))
+
+		if (flWidth > 25.0 && !(GetUserFlagBits(client) & ADMFLAG_ROOT))
 		{
 			flWidth = 25.0;
 		}
+
 		else
 		{
 			if (flWidth > 256.0)
@@ -171,16 +160,17 @@ public Action SM_WIDTH(int client, int args)
 				flWidth = 256.0;
 			}
 		}
+
 		if (flWidth < 0.128)
 		{
 			flWidth = 0.128;
 		}
+
 		g_fLaserWidth[client] = flWidth;
 		SetCookieFloat(client, g_hCookieWidth, g_fLaserWidth[client]);
 	}
 	ReplyToCommand(client, "Your laser's width is %.2f", g_fLaserWidth[client]);
 	return Plugin_Handled;
-
 }
 
 public Action SM_DURATION(int client, int args)
@@ -190,10 +180,12 @@ public Action SM_DURATION(int client, int args)
 		char sDuration[32];
 		GetCmdArg(1, sDuration, 32);
 		float flDuration = StringToFloat(sDuration);
+		
 		if (flDuration > 25.0)
 		{
 			flDuration = 25.0;
 		}
+		
 		if (flDuration < 0.0502)
 		{
 			flDuration = 0.0;
@@ -201,26 +193,29 @@ public Action SM_DURATION(int client, int args)
 		g_fLaserDuration[client] = flDuration;
 		SetCookieFloat(client, g_hCookieDuration, g_fLaserDuration[client]);
 	}
+	
 	if (g_fLaserDuration[client] == 0.0)
 	{
 		ReplyToCommand(client, "Your laser's duration is infinite");
 	}
+	
 	else
 	{
 		ReplyToCommand(client, "Your laser's duration is %.2f seconds", g_fLaserDuration[client]);
 	}
+	
 	return Plugin_Handled;
 }
 
 public Action SM_PIVOT(int client, int args)
 {
-
 	g_iPivotMode[client] = !g_iPivotMode[client];
 	
 	if(g_iPivotMode[client] == 1)
 	{
 		PrintToChat(client, "PivotMode: enabled");
 	}
+	
 	else if(g_iPivotMode[client] == 0)
 	{
 		PrintToChat(client, "PivotMode: disabled");
@@ -231,7 +226,6 @@ public Action SM_PIVOT(int client, int args)
 
 public Action SM_DISTANCE(int client, int args)
 {
-	
 	if (args >= 1)
 	{
 		char sDist[32];
@@ -241,6 +235,7 @@ public Action SM_DISTANCE(int client, int args)
 		{
 			flDist = 8192.0;
 		}
+		
 		if (flDist < 0.0)
 		{
 			flDist = 0.0;
@@ -248,6 +243,7 @@ public Action SM_DISTANCE(int client, int args)
 		g_fLaserDistance[client] = flDist;
 		SetCookieFloat(client, g_hCookieDistance, g_fLaserDistance[client]);
 	}
+	
 	ReplyToCommand(client, "Your laser's fixed distance is %.2f", g_fLaserDistance[client]);
 	return Plugin_Handled;
 
@@ -360,8 +356,8 @@ stock void LaserP(int client, float start[3], float end[3], int color[4])
 	if(g_iLaserShowMode[client] == 0)
 	{
 		int iTargets;
-		int[] t = new int[MaxClients];
-		for (int i = 1; i < MaxClients; i++)
+		int[] t = new int[MaxClients+1];
+		for (int i = 1; i <= MaxClients; i++)
 		{
 			if (IsClientInGame(i))
 			{
@@ -370,83 +366,43 @@ stock void LaserP(int client, float start[3], float end[3], int color[4])
 					iTargets++;
 					t[iTargets] = i;
 				}
+				
 				else if(!IsPlayerAlive(client) && GetEntPropEnt(client, Prop_Data, "m_hObserverTarget") == GetEntPropEnt(i, Prop_Data, "m_hObserverTarget"))
 				{
 					iTargets++;
 					t[iTargets] = i;				
 				}
+				
 				else if(client != i && (IsPlayerAlive(i) && !IsPlayerAlive(client) && i == GetEntPropEnt(client, Prop_Data, "m_hObserverTarget")))
 				{
 					iTargets++;
 					t[iTargets] = i;
 				}
+				
 				else
 				{	
 					continue;
 				}
 			}
+			
 			else
 			{
 				continue;
 			}
 		}
-		
 		TE_Send(t, iTargets);
 		TE_SendToClient(client);
 	}
+
 	else if(g_iLaserShowMode[client] == 1)
 	{
 		TE_SendToClient(client);
 	}
+
 	else if(g_iLaserShowMode[client] == 2)
 	{
 		TE_SendToAll();
 	}
-	
-	/*if(g_iLaserShowMode[client] == 0)
-	{
-		int target;
-		for(int c = 1; c <= MaxClients; c++)
-		{
-			if(!IsClientInGame(c))
-				continue;
-				
-			if(IsFakeClient(c))
-				continue;
-			
-			if(IsPlayerAlive(c))
-			{
-				target = c;
-			}
-			else
-			{
-				int ObserverTarget = GetEntPropEnt(c, Prop_Send, "m_hObserverTarget");
-				int ObserverMode   = GetEntProp(c, Prop_Send, "m_iObserverMode");
-				
-				if((0 < ObserverTarget <= MaxClients) && (ObserverMode == 4 || ObserverMode == 5 || ObserverMode == 6))
-					target = ObserverTarget;
-				else
-					continue;
-			}
-			
-		}
-		TE_SendToClient(target);
-		if(g_iPivotMode[target] == 1)
-			TE_Send(t, iTargets);
-		
-	}
-	else if(g_iLaserShowMode[client] == 1)
-	{
-		TE_SendToClient(client);
-		if(g_iPivotMode[client] == 1)
-			//TE_Send(t, iTargets);
-	}
-	else if(g_iLaserShowMode[client] == 2)
-	{
-		TE_SendToAll();
-		if(g_iPivotMode[client] == 1)
-			//TE_Send(t, iTargets);
-	}*/
 }
 
 void TraceEyeInf(int client, float pos[3]) 
