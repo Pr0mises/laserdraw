@@ -74,7 +74,6 @@ public void OnPluginStart()
 		if( IsClientInGame(i) )
 		{
 			OnClientPutInServer(i);
-			SetDefault(i);
 			OnClientCookiesCached(i);
 		}
 	}
@@ -123,11 +122,6 @@ public void OnClientPutInServer(int client)
 	g_fLastLaser[client][0] = 0.0;
 	g_fLastLaser[client][1] = 0.0;
 	g_fLastLaser[client][2] = 0.0;
-}
-
-public void SetDefault(int client)
-{
-	SetCookieInt(client, g_hCookieDefault, 0);
 }
 
 public Action SM_LASER(int client, int args)
@@ -357,7 +351,8 @@ public Action CMD_laser_m(int client, int args)
 stock void LaserP(int client, float start[3], float end[3], int color[4])
 {
 	TE_SetupBeamPoints(start, end, g_sprite, 0, 0, 0, g_fLaserDuration[client], g_fLaserWidth[client] / 2.0, g_fLaserWidth[client] / 2.0, 0, 0.0, color, 0);
-	if(g_iLaserShowMode[client] == 0)
+
+	if(g_iPivotMode[client] == 1)
 	{
 		int iTargets;
 		int[] t = new int[MaxClients];
@@ -390,22 +385,11 @@ stock void LaserP(int client, float start[3], float end[3], int color[4])
 				continue;
 			}
 		}
-		
-		TE_Send(t, iTargets);
-		TE_SendToClient(client);
-	}
-	else if(g_iLaserShowMode[client] == 1)
-	{
-		TE_SendToClient(client);
-	}
-	else if(g_iLaserShowMode[client] == 2)
-	{
-		TE_SendToAll();
-	}
+	}	
 	
-	/*if(g_iLaserShowMode[client] == 0)
+	if(g_iLaserShowMode[client] == 0)
 	{
-		int target;
+		/*int target;
 		for(int c = 1; c <= MaxClients; c++)
 		{
 			if(!IsClientInGame(c))
@@ -429,8 +413,8 @@ stock void LaserP(int client, float start[3], float end[3], int color[4])
 					continue;
 			}
 			
-		}
-		TE_SendToClient(target);
+		}Not working nr */
+		TE_SendToClient(target); 
 		if(g_iPivotMode[target] == 1)
 			TE_Send(t, iTargets);
 		
@@ -439,14 +423,14 @@ stock void LaserP(int client, float start[3], float end[3], int color[4])
 	{
 		TE_SendToClient(client);
 		if(g_iPivotMode[client] == 1)
-			//TE_Send(t, iTargets);
+			TE_Send(t, iTargets);
 	}
 	else if(g_iLaserShowMode[client] == 2)
 	{
 		TE_SendToAll();
 		if(g_iPivotMode[client] == 1)
-			//TE_Send(t, iTargets);
-	}*/
+			TE_Send(t, iTargets);
+	}
 }
 
 void TraceEyeInf(int client, float pos[3]) 
