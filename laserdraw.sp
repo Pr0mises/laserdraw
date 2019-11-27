@@ -1,9 +1,7 @@
 #pragma semicolon 1
 
-#define DEBUG
-
 #define PLUGIN_AUTHOR "Promises"
-#define PLUGIN_VERSION "1.00"
+#define PLUGIN_VERSION "1.1"
 
 #include <sourcemod>
 #include <sdktools>
@@ -17,10 +15,16 @@ public Plugin myinfo =
 	author = PLUGIN_AUTHOR,
 	description = "Draw with a laser",
 	version = PLUGIN_VERSION,
-	url = ""
+	url = "https://github.com/Pr0mises/laserdraw/"
 };
 
-int RainbowColors[12][4] =  { {255, 0, 0, 255}, {255, 128, 0, 255}, {255, 255, 0, 255}, {128, 255, 0, 255}, {0, 255, 0, 255}, {0, 255, 128, 255},  {0, 255, 255, 255}, {0, 128, 255, 255}, {0, 0, 255, 255}, {128, 0, 255, 255}, {255, 0, 255, 255}, {255, 0, 128, 255} };
+int RainbowColors[12][4] =  
+{ {255, 0, 0, 255}, {255, 128, 0, 255}, 
+{255, 255, 0, 255}, {128, 255, 0, 255}, 
+{0, 255, 0, 255}, {0, 255, 128, 255},  
+{0, 255, 255, 255}, {0, 128, 255, 255}, 
+{0, 0, 255, 255}, {128, 0, 255, 255}, 
+{255, 0, 255, 255}, {255, 0, 128, 255} };
 
 float g_fLastLaser[MAXPLAYERS+1][3];
 bool g_bLaserE[MAXPLAYERS+1] = {false, ...};
@@ -28,7 +32,7 @@ bool g_bLaserE[MAXPLAYERS+1] = {false, ...};
 int g_sprite;
 int g_iLaserMode[MAXPLAYERS + 1];
 int g_iLaserShowMode[MAXPLAYERS + 1];
-int g_iPivotMode[MAXPLAYERS + 1];
+bool g_bPivotMode[MAXPLAYERS + 1];
 
 
 float g_fLaserDuration[MAXPLAYERS + 1];
@@ -48,17 +52,17 @@ Handle g_hCookiePivot;
 public void OnPluginStart()
 {
 	
-	CreateConVar("sm_lazer_version", PLUGIN_VERSION, "laserdraw", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
+	CreateConVar("sm_lazer_version", PLUGIN_VERSION, "laserdraw", FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
 	
 	RegConsoleCmd("sm_laser", SM_LASER);
 	
 	RegConsoleCmd("+laser", SM_LASER_P);
 	RegConsoleCmd("-laser", SM_LASER_R);
 	
-	RegConsoleCmd("laser_width", SM_WIDTH);
-	RegConsoleCmd("laser_duration", SM_DURATION);
-	RegConsoleCmd("laser_distance", SM_DISTANCE);
-	RegConsoleCmd("laser_pivot", SM_PIVOT);
+	RegConsoleCmd("sm_laser_width", SM_WIDTH);
+	RegConsoleCmd("sm_laser_duration", SM_DURATION);
+	RegConsoleCmd("sm_laser_distance", SM_DISTANCE);
+	RegConsoleCmd("sm_laser_pivot", SM_PIVOT);
 	
 	g_hCookieLaserMode = RegClientCookie("laser_mode", "ladr_mode", CookieAccess_Public);
 	g_hCookieDuration = RegClientCookie("laser_duration", "ladr_duration", CookieAccess_Public);
@@ -106,7 +110,7 @@ public void OnClientCookiesCached(int client)
 	GetClientCookie(client, g_hCookieShowMode, sCookie, sizeof(sCookie));
 	g_iLaserShowMode[client] = StringToInt(sCookie);
 	GetClientCookie(client, g_hCookiePivot, sCookie, sizeof(sCookie));
-	g_iPivotMode[client] = StringToInt(sCookie);
+	g_bPivotMode[client] = StringToInt(sCookie);
 }
 public void OnMapStart()
 {
@@ -147,14 +151,13 @@ public Action SM_LASER_R(int client, int args)
 
 public Action SM_WIDTH(int client, int args)
 {
-
 	if (args >= 1)
 	{
 		char strWidth[32];
 		GetCmdArg(1, strWidth, 32);
 		float flWidth = StringToFloat(strWidth);
 		
-		if (flWidth > 25.0 && (!GetUserFlagBits(client) & ADMFLAG_ROOT))
+		if (flWidth > 25.0 && !(GetUserFlagBits(client) & ADMFLAG_ROOT))
 		{
 			flWidth = 25.0;
 		}
@@ -174,7 +177,6 @@ public Action SM_WIDTH(int client, int args)
 	}
 	ReplyToCommand(client, "Your laser's width is %.2f", g_fLaserWidth[client]);
 	return Plugin_Handled;
-
 }
 
 public Action SM_DURATION(int client, int args)
@@ -195,37 +197,25 @@ public Action SM_DURATION(int client, int args)
 		g_fLaserDuration[client] = flDuration;
 		SetCookieFloat(client, g_hCookieDuration, g_fLaserDuration[client]);
 	}
+	
 	if (g_fLaserDuration[client] == 0.0)
-	{
 		ReplyToCommand(client, "Your laser's duration is infinite");
-	}
 	else
-	{
 		ReplyToCommand(client, "Your laser's duration is %.2f seconds", g_fLaserDuration[client]);
-	}
+	
 	return Plugin_Handled;
 }
 
 public Action SM_PIVOT(int client, int args)
 {
 
-	g_iPivotMode[client] = !g_iPivotMode[client];
+	g_bPivotMode[client] = !g_bPivotMode[client];
 	
-	if(g_iPivotMode[client] == 1)
-	{
-		PrintToChat(client, "PivotMode: enabled");
-	}
-	else if(g_iPivotMode[client] == 0)
-	{
-		PrintToChat(client, "PivotMode: disabled");
-	}
-
+	ReplyToCommand(client, "Pivot Mode: %s", g_bPivotMode[client] ? "enabled" : "disabled");
 }
-
 
 public Action SM_DISTANCE(int client, int args)
 {
-	
 	if (args >= 1)
 	{
 		char sDist[32];
@@ -235,7 +225,7 @@ public Action SM_DISTANCE(int client, int args)
 		{
 			flDist = 8192.0;
 		}
-		if (flDist < 0.0)
+		else if (flDist < 0.0)
 		{
 			flDist = 0.0;
 		}
@@ -252,20 +242,21 @@ public void OpenLaserMenu(int client)
 
 	char sBuffer[128];
 	
-	Handle panel = CreatePanel();
-	SetPanelTitle(panel, "LaserMenu");
-	
+	Panel panel = CreatePanel();
+	panel.SetTitle("LaserMenu");
+	panel.DrawText(" ");
 	FormatEx(sBuffer, sizeof(sBuffer), "Paint - [%s]\n", (g_bLaserE[client]) ? "x" : " ");
-	DrawPanelItem(panel, sBuffer);
+	panel.DrawItem(sBuffer);
 	
 	FormatEx(sBuffer, sizeof(sBuffer), "%s\n", g_iLaserMode[client] == 0 ? "Mode: View Fixed Distance" : (g_iLaserMode[client] == 1 ? "Mode: Feet" : "Mode: Crosshair"));
-	DrawPanelItem(panel, sBuffer);
+	panel.DrawItem(sBuffer);
 	
 	FormatEx(sBuffer, sizeof(sBuffer), "%s\n", g_iLaserShowMode[client] == 0 ? "Mode: Specs" : (g_iLaserShowMode[client] == 1 ? "Mode: only you" : "Mode: everyone"));
-	DrawPanelItem(panel, sBuffer);
+	panel.DrawItem(sBuffer);
 	
-	DrawPanelItem(panel, "Print commands to console");
-	
+	panel.DrawItem("Print commands to console");
+	panel.DrawText(" ");
+	panel.CurrentKey = 10;
 	DrawPanelItem(panel, "Exit", ITEMDRAW_CONTROL);
 	SendPanelToClient(panel, client, LaserMenu, 0);
 	CloseHandle(panel);
@@ -354,9 +345,8 @@ stock void LaserP(int client, float start[3], float end[3], int color[4])
 	
 	int iTargets;
 	int[] t = new int[MaxClients];
-	if(g_iPivotMode[client] == 1)
+	if(g_bPivotMode[client])
 	{
-		
 		for (int i = 1; i <= MaxClients; i++)
 		{
 			if (IsClientInGame(i))
@@ -387,50 +377,43 @@ stock void LaserP(int client, float start[3], float end[3], int color[4])
 			}
 		}
 	}
-
-	
-	if(g_iLaserShowMode[client] == 0) //not working as intended rn
-	{
-		int target;
-		for(int c = 1; c <= MaxClients; c++)
+	if(g_iLaserShowMode[client] == 0)
+	{		
+		int specCount = 1;
+		int specs[MAXPLAYERS + 1];
+		specs[0] = client;
+		for(int i = 1; i <= MaxClients; i++)
 		{
-			if(!IsClientInGame(c))
+			if(!IsClientConnected(i) || !IsClientInGame(i) || i == client || IsPlayerAlive(i) || !IsValidClient(i))
 				continue;
-				
-			if(IsFakeClient(c))
-				continue;
-			
-			if(IsPlayerAlive(c))
+			int specMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
+			if(specMode >= 3 && specMode <= 5)
 			{
-				target = c;
-			}
-			else
-			{
-				int ObserverTarget = GetEntPropEnt(c, Prop_Send, "m_hObserverTarget");
-				int ObserverMode   = GetEntProp(c, Prop_Send, "m_iObserverMode");
-				
-				if((0 < ObserverTarget <= MaxClients) && (ObserverMode == 4 || ObserverMode == 5 || ObserverMode == 6))
-					target = ObserverTarget;
-				else
+				int target = GetEntPropEnt(i, Prop_Send, "m_hObserverTarget");
+				if (target < 1 || target > MaxClients || !IsClientConnected(i) ||!IsClientInGame(target))
 					continue;
+				
+				if(target == client)
+				{
+					specs[specCount++] = i;
+				}
 			}
-			
 		}
-		TE_SendToClient(target);
-		if(g_iPivotMode[target] == 1)
+		TE_Send(specs, specCount);
+		if(g_bPivotMode[client])
 			TE_Send(t, iTargets);
 		
 	}
 	else if(g_iLaserShowMode[client] == 1)
 	{
 		TE_SendToClient(client);
-		if(g_iPivotMode[client] == 1)
+		if(g_bPivotMode[client])
 			TE_Send(t, iTargets);
 	}
 	else if(g_iLaserShowMode[client] == 2)
 	{
 		TE_SendToAll();
-		if(g_iPivotMode[client] == 1)
+		if(g_bPivotMode[client])
 			TE_Send(t, iTargets);
 	}
 }
@@ -442,8 +425,8 @@ void TraceEyeInf(int client, float pos[3])
 	GetClientEyePosition(client, vOrigin);
 	GetClientEyeAngles(client, vAngles);
 	TR_TraceRayFilter(vOrigin, vAngles, MASK_SHOT, RayType_Infinite, TraceRayDontHitSelf);
-	if(TR_DidHit(INVALID_HANDLE)) 
-		TR_GetEndPosition(pos, INVALID_HANDLE);
+	if(TR_DidHit()) 
+		TR_GetEndPosition(pos);
 	return;
 }
 
@@ -495,7 +478,7 @@ stock void SetCookieInt(int client, Handle hCookie, int n)
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount)
 {
-	if (IsFakeClient(client))
+	if (IsFakeClient(client) || !IsValidClient(client))
 	{
 		return Plugin_Continue;
 	}
@@ -525,4 +508,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 	return Plugin_Continue;
+}
+
+stock bool IsValidClient(int client, bool bAlive = false)
+{
+	return (client >= 1 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client) && !IsClientSourceTV(client) && (!bAlive || IsPlayerAlive(client)));
 }
